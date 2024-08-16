@@ -177,18 +177,37 @@ class EasyedaSymbolImporter:
                 weight=lcsc_details and lcsc_details.weight,
                 properties=(lcsc_details and lcsc_details.properties) or dict(),
             ),
-            bbox=EeSymbolBbox(
-                x=float(ee_data["dataStr"]["head"]["x"]),
-                y=float(ee_data["dataStr"]["head"]["y"]),
-            ),
         )
 
-        for line in ee_data["dataStr"]["shape"]:
-            designator = line.split("~")[0]
-            if designator in easyeda_handlers:
-                easyeda_handlers[designator](line, new_ee_symbol)
-            else:
-                logging.warning(f"Unknow symbol designator : {designator}")
+        if "subparts" in ee_data:
+            for unit in ee_data["subparts"]:
+                new_ee_unit = EeSymbolUnit(
+                    bbox=EeSymbolBbox(
+                        x=float(ee_data["dataStr"]["head"]["x"]),
+                        y=float(ee_data["dataStr"]["head"]["y"]),
+                    ),
+                )
+                for line in unit["dataStr"]["shape"]:
+                    designator = line.split("~")[0]
+                    if designator in easyeda_handlers:
+                        easyeda_handlers[designator](line, new_ee_unit)
+                    else:
+                        logging.warning(f"Unknow symbol designator : {designator}")
+                new_ee_symbol.units.append(new_ee_unit)
+        else:
+            new_ee_unit = EeSymbolUnit(
+                bbox=EeSymbolBbox(
+                    x=float(ee_data["dataStr"]["head"]["x"]),
+                    y=float(ee_data["dataStr"]["head"]["y"]),
+                ),
+            )
+            for line in ee_data["dataStr"]["shape"]:
+                designator = line.split("~")[0]
+                if designator in easyeda_handlers:
+                    easyeda_handlers[designator](line, new_ee_unit)
+                else:
+                    logging.warning(f"Unknow symbol designator : {designator}")
+            new_ee_symbol.units.append(new_ee_unit)
 
         return new_ee_symbol
 

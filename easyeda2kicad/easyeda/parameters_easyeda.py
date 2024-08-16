@@ -336,10 +336,8 @@ class EeSymbolInfo:
     properties: dict = field(default_factory=dict)
 
 
-
 @dataclass
-class EeSymbol:
-    info: EeSymbolInfo
+class EeSymbolUnit:
     bbox: EeSymbolBbox
     pins: List[EeSymbolPin] = field(default_factory=list)
     rectangles: List[EeSymbolRectangle] = field(default_factory=list)
@@ -349,6 +347,11 @@ class EeSymbol:
     polylines: List[EeSymbolPolyline] = field(default_factory=list)
     polygons: List[EeSymbolPolygon] = field(default_factory=list)
     paths: List[EeSymbolPath] = field(default_factory=list)
+
+@dataclass
+class EeSymbol:
+    info: EeSymbolInfo
+    units: List[EeSymbolUnit] = field(default_factory=list)
 
 
 # ------------------------- Footprint -------------------------
