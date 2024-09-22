@@ -1,6 +1,7 @@
 # Global imports
 import json
 import logging
+import re
 
 from easyeda2kicad.easyeda.easyeda_api import EasyedaApi
 from easyeda2kicad.easyeda.parameters_easyeda import *
@@ -109,23 +110,54 @@ class EasyedaSymbolImporter:
     def __init__(self, easyeda_cp_cad_data: dict):
         self.input = easyeda_cp_cad_data
         self.output: EeSymbol = self.extract_easyeda_data(
-            ee_data=easyeda_cp_cad_data,
-            ee_data_info=easyeda_cp_cad_data["dataStr"]["head"]["c_para"],
+            ee_data=easyeda_cp_cad_data
         )
 
     def get_symbol(self) -> EeSymbol:
         return self.output
 
-    def extract_easyeda_data(self, ee_data: dict, ee_data_info: dict) -> EeSymbol:
+    def extract_easyeda_data(self, ee_data: dict) -> EeSymbol:
+        ee_data_info=ee_data["dataStr"]["head"]["c_para"]
+
+        jlc_type_raw = ee_data_info.get("JLCPCB Part Class", ee_data_info.get("BOM_JLCPCB Part Class", ""))
+        jlc_type = "base" if jlc_type_raw == "Basic Part" else "expand" if jlc_type_raw == "Extended Part" else ""
+
+        # Actual part name
+        part_name = ee_data_info["name"]
+        # If this is set, we use the given field as the display name
+        name_alias = ee_data_info.get("nameAlias", None)
+        # The value of the alias field, otherwise the part name
+        display_name = ee_data_info.get(name_alias, part_name) if name_alias else part_name
+
+        lcsc_id = str(ee_data["lcsc"].get("id") or "") or None
+        lcsc_number = ee_data["lcsc"]["number"]
+        # szlcsc has detailed pages for more parts than LCSC. We can build the URL with the part id
+        # TODO: Check if the link returns a 404
+        szlcsc_link = f"https://item.szlcsc.com/{lcsc_id}.html" if lcsc_id else None
+        # jlcpcb seems to have a page for every part, but that page does not contain more information than this API call
+        jlc_link = f"https://jlcpcb.com/partdetail/{lcsc_number}" if lcsc_number else None
+
         new_ee_symbol = EeSymbol(
             info=EeSymbolInfo(
                 name=ee_data_info["name"],
-                prefix=ee_data_info["pre"],
                 package=ee_data_info.get("package", None),
-                manufacturer=ee_data_info.get("BOM_Manufacturer", None),
-                datasheet=ee_data["lcsc"].get("url", None),
-                lcsc_id=ee_data["lcsc"].get("number", None),
-                jlc_id=ee_data_info.get("BOM_JLCPCB Part Class", None),
+                prefix=re.sub(r'\?.+$', '', ee_data_info.get("pre", "")) or None,
+                description=ee_data.get("description", None),
+                datasheet=ee_data["lcsc"].get("url", szlcsc_link),
+                lcsc_id=lcsc_id,
+                lcsc_number=lcsc_number,
+                value=ee_data_info.get("value", None),
+                lcsc_link=ee_data["lcsc"].get("url", szlcsc_link),
+                jlc_link=jlc_link,
+                jlc_available="true" if ee_data.get("jlcOnSale", 0) == 1 else "false",
+                jlc_class=jlc_type,
+                supplier=ee_data_info.get("Supplier", None),
+                supplier_part=ee_data_info.get("Supplier Part", None),
+                display_name=display_name,
+                manufacturer=ee_data_info.get("BOM_Manufacturer", ee_data_info.get("Manufacturer", None)),
+                manufacturer_part=ee_data_info.get("Manufacturer Part", ee_data_info.get("BOM_Manufacturer Part", None)),
+                category=next(iter(ee_data.get("tags", [])), ""),
+                contributor=ee_data_info.get("Contributor", None),
             ),
             bbox=EeSymbolBbox(
                 x=float(ee_data["dataStr"]["head"]["x"]),

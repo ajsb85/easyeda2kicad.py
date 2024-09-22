@@ -303,13 +303,7 @@ def convert_ee_paths(
 def convert_to_kicad(ee_symbol: EeSymbol, kicad_version: KicadVersion) -> KiSymbol:
 
     ki_info = KiSymbolInfo(
-        name=ee_symbol.info.name,
-        prefix=ee_symbol.info.prefix.replace("?", ""),
-        package=ee_symbol.info.package,
-        manufacturer=ee_symbol.info.manufacturer,
-        datasheet=ee_symbol.info.datasheet,
-        lcsc_id=ee_symbol.info.lcsc_id,
-        jlc_id=ee_symbol.info.jlc_id,
+        info = ee_symbol.info,
     )
 
     kicad_symbol = KiSymbol(
@@ -355,7 +349,7 @@ def convert_to_kicad(ee_symbol: EeSymbol, kicad_version: KicadVersion) -> KiSymb
 
 
 def tune_footprint_ref_path(ki_symbol: KiSymbol, footprint_lib_name: str):
-    ki_symbol.info.package = f"{footprint_lib_name}:{ki_symbol.info.package}"
+    ki_symbol.info.info.package = f"{footprint_lib_name}:{ki_symbol.info.info.package}"
 
 
 class ExporterSymbolKicad:

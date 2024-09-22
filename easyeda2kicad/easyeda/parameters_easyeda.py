@@ -283,13 +283,54 @@ class EeSymbolPath(BaseModel):
 # ---------------- SYMBOL ----------------
 @dataclass
 class EeSymbolInfo:
+    # Manufacturer part number/name
     name: str = ""
+    # Description. Usually empty
+    description: str = ""
+    # Prefix, like C for capacitors or R for resistors
     prefix: str = ""
+    # String describing the manufacturer
     package: str = ""
-    manufacturer: str = ""
+    # Link to the datasheet; Should be a PDF, can be a link to the lcsc store page 
     datasheet: str = ""
+    # Link to the lcsc store page
+    lcsc_link: str = ""
+    # Link to the jlcpcb part page
+    jlc_link: str = ""
+    # The lcsc id. A number in a string. Unique. This is usually not what you want
     lcsc_id: str = ""
-    jlc_id: str = ""
+    # The lcsc number. A C followed by some numbers.
+    lcsc_number: str = ""
+    # Value of the part, including the unit. What exactly this is is depends on the part.
+    # If the part has no value, this is empty
+    value: str = ""
+    # # Total stock at lcsc
+    # lcsc_stock: int = 0
+    # # Total stock at szlcsc
+    # szlcsc_stock: int = 0
+    # 'base' if this is a base part at the jlcpcb SMT service
+    # 'expand' if this is an extended part at the jlcpcb SMT service
+    # Sometimes empty, not sure what that means
+    jlc_class: str = ""
+    # 'true' if it is available, 'false' if not, '' if unknown
+    jlc_available: str = ""
+    # # Price at jlc
+    # price: str = ""
+    # Name of the supplier. Usually LCSC
+    supplier: str = ""
+    # Part number as the supplier. Usually equal to name, as lcsc is nearly always the supplier
+    supplier_part: str = ""
+    # Name of the manufacturer
+    manufacturer: str = ""
+    # The manufacturer part number/name
+    manufacturer_part: str = ""
+    # The category of the part
+    category: str = ""
+    # Who contributed this part. Usually LCSC
+    contributor: str = ""
+    # The preferred display name for the part
+    display_name: str = ""
+
 
 
 @dataclass
