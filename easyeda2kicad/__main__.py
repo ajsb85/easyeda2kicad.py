@@ -6,6 +6,7 @@ import re
 import sys
 from textwrap import dedent
 from typing import List
+from pathlib import Path
 
 from easyeda2kicad import __version__
 from easyeda2kicad.easyeda.easyeda_api import EasyedaApi
@@ -219,6 +220,49 @@ def fp_already_in_footprint_lib(lib_path: str, package_name: str) -> bool:
         return True
     return False
 
+def find_kicad_project(starting_path):
+    extension = ".kicad_pro"
+    current_dir = starting_path
+
+    # Traverse upwards from the starting path to find the project root
+    while current_dir != current_dir.parent:
+        # Look for any file with the given extension in the current directory
+        pro_files = list(current_dir.glob(f"*{extension}"))
+        if pro_files:
+            return current_dir  # Return the project root as soon as a .pro file is found
+        
+        # Move one directory level up
+        current_dir = current_dir.parent
+    
+    # If no project root is found, return None or raise an error
+    return None
+
+def get_path_relative_to_kicad_project(path):
+    """Return the relative path of the input path inside the project root."""
+    # Convert path to a Path object
+    path = Path(path)
+    
+    # If the path is relative, resolve it to an absolute path
+    if not path.is_absolute():
+        path = Path.cwd() / path
+
+    path = path.resolve()
+
+    # Try to find the project root using find_project_root
+    project_root = find_kicad_project(path)
+
+    # If no project root is found, use the current working directory as the root
+    if not project_root:
+        project_root = Path.cwd().resolve()
+
+    # Return the relative path of the input path inside the project
+    try:
+        relative_path = path.relative_to(project_root)
+    except ValueError:
+        # If the path is not inside the project root, return nothing
+        return None
+
+    return relative_path
 
 def main(argv: List[str] = sys.argv[1:]) -> int:
     print(f"-- easyeda2kicad.py v{__version__} --")
@@ -315,13 +359,19 @@ def main(argv: List[str] = sys.argv[1:]) -> int:
         footprint_filename = f"{easyeda_footprint.info.name}.kicad_mod"
         footprint_path = f"{arguments['output']}.pretty"
         model_3d_path = f"{arguments['output']}.3dshapes".replace("\\", "/").replace(
-            "./", "/"
+            "./", ""
         )
 
         if arguments.get("use_default_folder"):
             model_3d_path = "${EASYEDA2KICAD}/easyeda2kicad.3dshapes"
         if arguments["project_relative"]:
-            model_3d_path = "${KIPRJMOD}" + model_3d_path
+            relative_model_3d_path = get_path_relative_to_kicad_project(model_3d_path)
+            if relative_model_3d_path:
+                model_3d_path = "${KIPRJMOD}/" + relative_model_3d_path.as_posix()
+            else:
+                # There is no kicad project and the path is not relative to the current path
+                # Using the absolute path
+                model_3d_path = model_3d_path
 
         ki_footprint.export(
             footprint_full_path=f"{footprint_path}/{footprint_filename}",
