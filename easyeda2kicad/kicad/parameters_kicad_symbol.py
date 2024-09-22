@@ -5,6 +5,9 @@ import textwrap
 from dataclasses import dataclass, field, fields
 from enum import Enum, auto
 from typing import List, Union
+from easyeda2kicad.easyeda.parameters_easyeda import (
+    EeSymbolInfo,
+)
 
 
 class KicadVersion(Enum):
@@ -133,13 +136,7 @@ class KiExportConfigV6(Enum):
 # ---------------- INFO HEADER ----------------
 @dataclass
 class KiSymbolInfo:
-    name: str
-    prefix: str
-    package: str
-    manufacturer: str
-    datasheet: str
-    lcsc_id: str
-    jlc_id: str
+    info: EeSymbolInfo
     y_low: Union[int, float] = 0
     y_high: Union[int, float] = 0
 
@@ -148,22 +145,22 @@ class KiSymbolInfo:
         header: List[str] = [
             "DEF {name} {ref} 0 {pin_name_offset} {show_pin_number} {show_pin_name}"
             " {num_units} L N".format(
-                name=sanitize_fields(self.name),
-                ref=self.prefix,
+                name=sanitize_fields(self.info.name),
+                ref=self.info.prefix,
                 pin_name_offset=KiExportConfigV5.PIN_NAME_OFFSET.value,
                 show_pin_number="Y",
                 show_pin_name="Y",
                 num_units=1,
             ),
             'F0 "{ref_prefix}" {x} {y} {font_size} H V {text_justification} CNN'.format(
-                ref_prefix=self.prefix,
+                ref_prefix=self.info.prefix,
                 x=0,
                 y=self.y_high + field_offset_y,
                 text_justification="C",  # Center align
                 font_size=KiExportConfigV5.FIELD_FONT_SIZE.value,
             ),
             'F1 "{num}" {x} {y} {font_size} H V {text_justification} CNN'.format(
-                num=self.name,
+                num=self.info.name,
                 x=0,
                 y=self.y_low - field_offset_y,
                 text_justification="C",  # Center align
@@ -171,40 +168,40 @@ class KiSymbolInfo:
             ),
         ]
 
-        if self.package:
+        if self.info.package:
             field_offset_y += KiExportConfigV5.FIELD_OFFSET_INCREMENT.value
             header.append(
                 'F2 "{footprint}" {x} {y} {font_size} H I {text_justification} CNN'
                 .format(
-                    footprint=self.package,
+                    footprint=self.info.package,
                     x=0,
                     y=self.y_low - field_offset_y,
                     text_justification="C",  # Center align
                     font_size=KiExportConfigV5.FIELD_FONT_SIZE.value,
                 )
             )
-        if self.datasheet:
+        if self.info.datasheet:
             field_offset_y += KiExportConfigV5.FIELD_OFFSET_INCREMENT.value
             header.append(
                 'F3 "{datasheet}" {x} {y} {font_size} H I {text_justification} CNN'
                 .format(
-                    datasheet=self.datasheet,
+                    datasheet=self.info.datasheet,
                     x=0,
                     y=self.y_low - field_offset_y,
                     text_justification="C",  # Center align
                     font_size=KiExportConfigV5.FIELD_FONT_SIZE.value,
                 )
             )
-        if self.manufacturer:
+        if self.info.manufacturer:
             header.append(
                 'F4 "{manufacturer}" 0 0 0 H I C CNN "Manufacturer"'.format(
-                    manufacturer=self.manufacturer,
+                    manufacturer=self.info.manufacturer,
                 )
             )
-        if self.lcsc_id:
-            header.append(f'F6 "{self.lcsc_id}" 0 0 0 H I C CNN "LCSC Part"')
-        if self.jlc_id:
-            header.append(f'F7 "{self.jlc_id}" 0 0 0 H I C CNN "JLC Part"')
+        if self.info.lcsc_id:
+            header.append(f'F6 "{self.info.lcsc_id}" 0 0 0 H I C CNN "LCSC Part"')
+        if self.info.jlc_class:
+            header.append(f'F7 "{self.info.jlc_class}" 0 0 0 H I C CNN "JLCPCB Part Class"')
 
         header.append("DRAW\n")
 
@@ -219,7 +216,7 @@ class KiSymbolInfo:
                   "{value}"
                   (id {id_})
                   (at 0 {pos_y:.2f} 0)
-                  (effects (font (size {font_size} {font_size}) {style}) {hide})
+                  (effects (font (face "KiCad Font") (size {font_size} {font_size}) {style}) {hide})
                 )"""
             ),
             "  ",
@@ -229,7 +226,7 @@ class KiSymbolInfo:
         header: List[str] = [
             property_template.format(
                 key="Reference",
-                value=self.prefix,
+                value=self.info.prefix,
                 id_=0,
                 pos_y=self.y_high + field_offset_y,
                 font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
@@ -238,7 +235,7 @@ class KiSymbolInfo:
             ),
             property_template.format(
                 key="Value",
-                value=self.name,
+                value=self.info.value or self.info.display_name or self.info.name,
                 id_=1,
                 pos_y=self.y_low - field_offset_y,
                 font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
@@ -246,64 +243,47 @@ class KiSymbolInfo:
                 hide="",
             ),
         ]
-        if self.package:
-            field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
-            header.append(
-                property_template.format(
-                    key="Footprint",
-                    value=self.package,
-                    id_=2,
-                    pos_y=self.y_low - field_offset_y,
-                    font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
-                    style="",
-                    hide="hide",
+
+        current_id = 2
+        def append_property(value: str, name: str):
+            nonlocal field_offset_y
+            nonlocal current_id
+            if value:
+                field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
+                header.append(
+                    property_template.format(
+                        key=name,
+                        value=value,
+                        id_=2,
+                        pos_y=self.y_low - field_offset_y,
+                        font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
+                        style="",
+                        hide="hide",
+                    )
                 )
-            )
-        if self.datasheet:
+                current_id += 1
+        append_property(self.info.package, "Footprint")
+        append_property(self.info.datasheet, "Datasheet")
+        append_property(self.info.description, "Description")
+        append_property(self.info.jlc_class, "JLCPCB Part Class")
+        append_property(self.info.manufacturer, "Manufacturer")
+        append_property(self.info.manufacturer_part, "Manufacturer Part")
+        append_property(self.info.supplier, "Supplier")
+        append_property(self.info.supplier_part, "Supplier Part")
+        append_property(self.info.category, "Category")
+        append_property(self.info.contributor, "Contributer")
+        append_property(self.info.jlc_available, "JLCPCB SMT Service")
+        append_property(self.info.jlc_link, "JLCPCB Part Page")
+        append_property(self.info.lcsc_link, "LCSC Page")
+        append_property(self.info.lcsc_number, "LCSC Part")
+        append_property(self.info.lcsc_id, "LCSC Id")        
+            
+        if self.info.jlc_class:
             field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
             header.append(
                 property_template.format(
-                    key="Datasheet",
-                    value=self.datasheet,
-                    id_=3,
-                    pos_y=self.y_low - field_offset_y,
-                    font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
-                    style="",
-                    hide="hide",
-                )
-            )
-        if self.manufacturer:
-            field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
-            header.append(
-                property_template.format(
-                    key="Manufacturer",
-                    value=self.manufacturer,
-                    id_=4,
-                    pos_y=self.y_low - field_offset_y,
-                    font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
-                    style="",
-                    hide="hide",
-                )
-            )
-        if self.lcsc_id:
-            field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
-            header.append(
-                property_template.format(
-                    key="LCSC Part",
-                    value=self.lcsc_id,
-                    id_=5,
-                    pos_y=self.y_low - field_offset_y,
-                    font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
-                    style="",
-                    hide="hide",
-                )
-            )
-        if self.jlc_id:
-            field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
-            header.append(
-                property_template.format(
-                    key="JLC Part",
-                    value=self.jlc_id,
+                    key="JLCPCB Part Class",
+                    value=self.info.jlc_class,
                     id_=6,
                     pos_y=self.y_low - field_offset_y,
                     font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
@@ -629,7 +609,7 @@ class KiSymbol:
 
         return (
             "#\n#"
-            f" {sanitize_fields(self.info.name)}\n#\n{sym_info}{''.join(sym_graphic_items)}ENDDRAW\nENDDEF\n"
+            f" {sanitize_fields(self.info.info.name)}\n#\n{sym_info}{''.join(sym_graphic_items)}ENDDRAW\nENDDEF\n"
         )
 
     def export_v6(self):
@@ -653,7 +633,7 @@ class KiSymbol:
             ),
             "  ",
         ).format(
-            library_id=sanitize_fields(self.info.name),
+            library_id=sanitize_fields(self.info.info.name),
             symbol_properties=textwrap.indent(
                 textwrap.dedent("".join(sym_info)), "  " * 2
             ),
