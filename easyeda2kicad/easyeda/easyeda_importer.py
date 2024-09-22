@@ -175,6 +175,7 @@ class EasyedaSymbolImporter:
                 lcsc_stock=lcsc_details and lcsc_details.lcsc_stock,
                 lcsc_price=lcsc_price,
                 weight=lcsc_details and lcsc_details.weight,
+                properties=(lcsc_details and lcsc_details.properties) or dict(),
             ),
             bbox=EeSymbolBbox(
                 x=float(ee_data["dataStr"]["head"]["x"]),

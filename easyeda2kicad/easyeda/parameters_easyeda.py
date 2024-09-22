@@ -332,6 +332,8 @@ class EeSymbolInfo:
     display_name: str = ""
     # The weight of a part
     weight: float = None
+    # Additional properties
+    properties: dict = field(default_factory=dict)
 
 
 

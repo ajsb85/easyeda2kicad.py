@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 import requests
 from dataclasses import dataclass, field
+import re
 
 from easyeda2kicad import __version__
 
@@ -25,6 +26,7 @@ class LcscDetails:
     product_description: str = None
     product_intro: str = None
     weight: float = None
+    properties: dict = field(default_factory=dict)
 
 # ------------------------------------------------------------
 
@@ -120,6 +122,14 @@ class EasyedaApi:
         if not result:
             logging.debug(f"No details available for {lcsc_id}")
             return None
+
+        properties = dict()
+        for param in result.get("paramVOList", []) or []:
+            name = param.get("paramNameEn")
+            value = param.get("paramValueEn")
+            id_ = int(re.search(r'\d+', param.get("paramCode", "") + "_0").group())
+            if name and value and id_:
+                properties[name] = (id_, value)
         
         return LcscDetails(
             lcsc_stock=result.get("stockNumber", None),
@@ -130,6 +140,7 @@ class EasyedaApi:
             product_description=result.get("productDescEn"),
             product_intro=result.get("productIntroEn"),
             weight=result.get("weight", result.get("productWeight", None) and (result.get("productWeight", None) / 1000)),
+            properties=properties
         )
 
     def get_raw_3d_model_obj(self, uuid: str) -> str:
