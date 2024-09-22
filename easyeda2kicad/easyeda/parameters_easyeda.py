@@ -306,6 +306,8 @@ class EeSymbolInfo:
     value: str = ""
     # Total stock at jlcpcb smt service
     jlc_stock: int = 0
+    # Total stock at LCSC
+    lcsc_stock: int = 0
     # 'base' if this is a base part at the jlcpcb SMT service
     # 'expand' if this is an extended part at the jlcpcb SMT service
     # Sometimes empty, not sure what that means
@@ -328,6 +330,8 @@ class EeSymbolInfo:
     contributor: str = ""
     # The preferred display name for the part
     display_name: str = ""
+    # The weight of a part
+    weight: float = None
 
 
 
