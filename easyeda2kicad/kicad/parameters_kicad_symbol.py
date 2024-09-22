@@ -266,6 +266,8 @@ class KiSymbolInfo:
         append_property(self.info.datasheet, "Datasheet")
         append_property(self.info.description, "Description")
         append_property(self.info.jlc_class, "JLCPCB Part Class")
+        append_property(self.info.jlc_stock, "JLCPCB Stock")
+        append_property(self.info.lcsc_price, "LCSC Price")
         append_property(self.info.manufacturer, "Manufacturer")
         append_property(self.info.manufacturer_part, "Manufacturer Part")
         append_property(self.info.supplier, "Supplier")
@@ -276,7 +278,8 @@ class KiSymbolInfo:
         append_property(self.info.jlc_link, "JLCPCB Part Page")
         append_property(self.info.lcsc_link, "LCSC Page")
         append_property(self.info.lcsc_number, "LCSC Part")
-        append_property(self.info.lcsc_id, "LCSC Id")        
+        append_property(self.info.lcsc_id, "LCSC Id")
+
             
         if self.info.jlc_class:
             field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value

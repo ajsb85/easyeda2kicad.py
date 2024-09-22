@@ -137,6 +137,9 @@ class EasyedaSymbolImporter:
         # jlcpcb seems to have a page for every part, but that page does not contain more information than this API call
         jlc_link = f"https://jlcpcb.com/partdetail/{lcsc_number}" if lcsc_number else None
 
+        lcsc_price_raw = ee_data.get("lcsc_price", None)
+        lcsc_price = f"{lcsc_price_raw}$" if lcsc_price_raw != None else None
+
         new_ee_symbol = EeSymbol(
             info=EeSymbolInfo(
                 name=ee_data_info["name"],
@@ -158,6 +161,8 @@ class EasyedaSymbolImporter:
                 manufacturer_part=ee_data_info.get("Manufacturer Part", ee_data_info.get("BOM_Manufacturer Part", None)),
                 category=next(iter(ee_data.get("tags", [])), ""),
                 contributor=ee_data_info.get("Contributor", None),
+                jlc_stock=ee_data.get("jlc_stock", None),
+                lcsc_price=lcsc_price,
             ),
             bbox=EeSymbolBbox(
                 x=float(ee_data["dataStr"]["head"]["x"]),

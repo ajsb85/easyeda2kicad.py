@@ -304,18 +304,16 @@ class EeSymbolInfo:
     # Value of the part, including the unit. What exactly this is is depends on the part.
     # If the part has no value, this is empty
     value: str = ""
-    # # Total stock at lcsc
-    # lcsc_stock: int = 0
-    # # Total stock at szlcsc
-    # szlcsc_stock: int = 0
+    # Total stock at jlcpcb smt service
+    jlc_stock: int = 0
     # 'base' if this is a base part at the jlcpcb SMT service
     # 'expand' if this is an extended part at the jlcpcb SMT service
     # Sometimes empty, not sure what that means
     jlc_class: str = ""
     # 'true' if it is available, 'false' if not, '' if unknown
     jlc_available: str = ""
-    # # Price at jlc
-    # price: str = ""
+    # Price at lcsc
+    lcsc_price: str = ""
     # Name of the supplier. Usually LCSC
     supplier: str = ""
     # Part number as the supplier. Usually equal to name, as lcsc is nearly always the supplier
