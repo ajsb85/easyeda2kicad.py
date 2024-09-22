@@ -244,8 +244,8 @@ class KiSymbolInfo:
             ),
         ]
 
-        current_id = 2
-        def append_property(value: str, name: str):
+        current_id = [2]
+        def append_property(value: str, name: str, id_: int = None):
             nonlocal field_offset_y
             nonlocal current_id
             if value:
@@ -254,14 +254,16 @@ class KiSymbolInfo:
                     property_template.format(
                         key=name,
                         value=value,
-                        id_=2,
+                        id_=id_ or (current_id[0]),
                         pos_y=self.y_low - field_offset_y,
                         font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
                         style="",
                         hide="hide",
                     )
                 )
-                current_id += 1
+            if not id_:
+                current_id[0] = current_id[0] + 1
+                
         append_property(self.info.package, "Footprint")
         append_property(self.info.datasheet, "Datasheet")
         append_property(self.info.description, "Description")
@@ -281,21 +283,9 @@ class KiSymbolInfo:
         append_property(self.info.lcsc_number, "LCSC Part")
         append_property(self.info.lcsc_id, "LCSC Id")
         append_property(self.info.weight, "Weight")
-
-            
-        if self.info.jlc_class:
-            field_offset_y += KiExportConfigV6.FIELD_OFFSET_INCREMENT.value
-            header.append(
-                property_template.format(
-                    key="JLCPCB Part Class",
-                    value=self.info.jlc_class,
-                    id_=6,
-                    pos_y=self.y_low - field_offset_y,
-                    font_size=KiExportConfigV6.PROPERTY_FONT_SIZE.value,
-                    style="",
-                    hide="hide",
-                )
-            )
+        
+        for key, value in self.info.properties.items():
+            append_property(value[1], key, value[0])
 
         return header
 
