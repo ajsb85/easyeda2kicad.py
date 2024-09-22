@@ -118,6 +118,12 @@ class EasyedaSymbolImporter:
 
     def extract_easyeda_data(self, ee_data: dict) -> EeSymbol:
         ee_data_info=ee_data["dataStr"]["head"]["c_para"]
+        lcsc_details: LcscDetails = ee_data.get("lcsc_details")
+        if not lcsc_details:
+            logging.warning(
+                f"Failed to get details from LCSC"
+            )
+            return None
 
         jlc_type_raw = ee_data_info.get("JLCPCB Part Class", ee_data_info.get("BOM_JLCPCB Part Class", ""))
         jlc_type = "base" if jlc_type_raw == "Basic Part" else "expand" if jlc_type_raw == "Extended Part" else ""
@@ -140,17 +146,21 @@ class EasyedaSymbolImporter:
         lcsc_price_raw = ee_data.get("lcsc_price", None)
         lcsc_price = f"{lcsc_price_raw}$" if lcsc_price_raw != None else None
 
+        lcsc_link = ee_data["lcsc"].get("url", szlcsc_link)
+        datasheet = (lcsc_details and lcsc_details.datasheet) or lcsc_link
+        description = (lcsc_details and lcsc_details.product_description) or ee_data.get("description", None) or (lcsc_details and lcsc_details.product_intro) or None
+
         new_ee_symbol = EeSymbol(
             info=EeSymbolInfo(
                 name=ee_data_info["name"],
                 package=ee_data_info.get("package", None),
                 prefix=re.sub(r'\?.+$', '', ee_data_info.get("pre", "")) or None,
-                description=ee_data.get("description", None),
-                datasheet=ee_data["lcsc"].get("url", szlcsc_link),
+                description=description,
+                datasheet=datasheet,
                 lcsc_id=lcsc_id,
                 lcsc_number=lcsc_number,
                 value=ee_data_info.get("value", None),
-                lcsc_link=ee_data["lcsc"].get("url", szlcsc_link),
+                lcsc_link=lcsc_link,
                 jlc_link=jlc_link,
                 jlc_available="true" if ee_data.get("jlcOnSale", 0) == 1 else "false",
                 jlc_class=jlc_type,
@@ -159,10 +169,12 @@ class EasyedaSymbolImporter:
                 display_name=display_name,
                 manufacturer=ee_data_info.get("BOM_Manufacturer", ee_data_info.get("Manufacturer", None)),
                 manufacturer_part=ee_data_info.get("Manufacturer Part", ee_data_info.get("BOM_Manufacturer Part", None)),
-                category=next(iter(ee_data.get("tags", [])), ""),
+                category=(lcsc_details and lcsc_details.category) or (lcsc_details and lcsc_details.parentCategory) or next(iter(ee_data.get("tags", [])), ""),
                 contributor=ee_data_info.get("Contributor", None),
                 jlc_stock=ee_data.get("jlc_stock", None),
+                lcsc_stock=lcsc_details and lcsc_details.lcsc_stock,
                 lcsc_price=lcsc_price,
+                weight=lcsc_details and lcsc_details.weight,
             ),
             bbox=EeSymbolBbox(
                 x=float(ee_data["dataStr"]["head"]["x"]),

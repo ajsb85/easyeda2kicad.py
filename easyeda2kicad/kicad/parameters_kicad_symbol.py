@@ -267,18 +267,20 @@ class KiSymbolInfo:
         append_property(self.info.description, "Description")
         append_property(self.info.jlc_class, "JLCPCB Part Class")
         append_property(self.info.jlc_stock, "JLCPCB Stock")
+        append_property(self.info.lcsc_stock, "LCSC Stock")
         append_property(self.info.lcsc_price, "LCSC Price")
         append_property(self.info.manufacturer, "Manufacturer")
         append_property(self.info.manufacturer_part, "Manufacturer Part")
         append_property(self.info.supplier, "Supplier")
         append_property(self.info.supplier_part, "Supplier Part")
         append_property(self.info.category, "Category")
-        append_property(self.info.contributor, "Contributer")
+        append_property(self.info.contributor, "Contributor")
         append_property(self.info.jlc_available, "JLCPCB SMT Service")
         append_property(self.info.jlc_link, "JLCPCB Part Page")
         append_property(self.info.lcsc_link, "LCSC Page")
         append_property(self.info.lcsc_number, "LCSC Part")
         append_property(self.info.lcsc_id, "LCSC Id")
+        append_property(self.info.weight, "Weight")
 
             
         if self.info.jlc_class:
